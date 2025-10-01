@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import connectMongoDB from "./db/connectMongoDB.js";
 import cookieParser from "cookie-parser";
 import UserRoutes from "./routes/UserRoutes.js";
+import PostRoutes from "./routes/PostRoutes.js";
 import { v2 as cloudinary } from "cloudinary";
 dotenv.config();
 
@@ -22,6 +23,8 @@ app.use(express.urlencoded({ extended: true })); // to parse urlencoded data
 app.use(cookieParser()); // to parse cookies
 app.use("/api/auth", authRoutes);
 app.use("/api/user", UserRoutes); 
+app.use("/api/posts", PostRoutes); // Add this line to use post routes
+
 
 app.listen(PORT, () => {
     console.log(`server is running at ${PORT}`);
