@@ -3,6 +3,7 @@ import User from "../models/user.model.js";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import nodemailer from "nodemailer";
+import sendEmailWithAPI from "../lib/utils/emailAPI.js";
 
 // Send OTP
 export const sendOtp = async (req, res) => {
@@ -22,40 +23,35 @@ export const sendOtp = async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        // Send OTP email with enhanced configuration
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER,
-                pass: process.env.EMAIL_PASS,
-            },
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000,   // 30 seconds  
-            socketTimeout: 60000,     // 60 seconds
-        });
-
-        const mailOptions = {
-            to: email,
-            from: process.env.EMAIL_USER,
-            subject: "Your OTP Code",
-            text: `Your OTP code is: ${otp}`,
-            html: `<p>Your OTP code is: <b>${otp}</b></p>`,
-        };
-
+        // Send OTP email using API services (free tier compatible)
         try {
-            await transporter.sendMail(mailOptions);
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Your OTP Code</h2>
+                    <p>Your OTP code is: <strong style="font-size: 24px; color: #007bff;">${otp}</strong></p>
+                    <p>This code will expire in 10 minutes.</p>
+                    <p>If you didn't request this code, please ignore this email.</p>
+                </div>
+            `;
+            
+            // Try API-based email services first (work on free tier)
+            await sendEmailWithAPI(
+                email,
+                "Your OTP Code",
+                `Your OTP code is: ${otp}`,
+                htmlContent
+            );
+            
             console.log("OTP email sent successfully to:", email);
             res.status(200).json({ message: "OTP sent to your email." });
+            
         } catch (emailError) {
             console.log("Email sending failed:", emailError.message);
             // Don't fail the request if email fails in production
             if (process.env.NODE_ENV === 'production') {
                 console.log("Email service unavailable in production, but OTP saved to database");
                 res.status(200).json({ 
-                    message: "OTP generated. Email service temporarily unavailable.",
+                    message: "OTP generated. Email service temporarily unavailable. Check console in development.",
                     otp: process.env.NODE_ENV === 'development' ? otp : undefined
                 });
             } else {
@@ -104,21 +100,6 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        // Send email with enhanced configuration
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            host: "smtp.gmail.com",
-            port: 587,
-            secure: false,
-            auth: {
-                user: process.env.EMAIL_USER, // your gmail
-                pass: process.env.EMAIL_PASS, // your gmail app password
-            },
-            connectionTimeout: 60000, // 60 seconds
-            greetingTimeout: 30000,   // 30 seconds  
-            socketTimeout: 60000,     // 60 seconds
-        });
-
         // Use dynamic URL based on environment
         const baseUrl = process.env.NODE_ENV === 'production' 
             ? process.env.FRONTEND_URL || 'https://your-deployed-app.com'
@@ -127,32 +108,42 @@ export const forgotPassword = async (req, res) => {
         
         console.log("Reset URL generated:", resetUrl);
         
-		const mailOptions = {
-			to: user.email,
-			from: process.env.EMAIL_USER,
-			subject: "Password Reset",
-			text: `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
-			html: `
-				<p>You requested a password reset.</p>
-				<p>
-					Click the link below to reset your password:<br/>
-					<a href="${resetUrl}" target="_blank">${resetUrl}</a>
-				</p>
-				<p>If you did not request this, please ignore this email.</p>
-			`,
-		};
-
+        // Send password reset email using API services (free tier compatible)
         try {
-            await transporter.sendMail(mailOptions);
+            const htmlContent = `
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
+                    <h2>Password Reset Request</h2>
+                    <p>You requested a password reset for your account.</p>
+                    <p>
+                        <a href="${resetUrl}" style="background-color: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                            Reset Your Password
+                        </a>
+                    </p>
+                    <p>Or copy and paste this link in your browser:</p>
+                    <p style="word-break: break-all;">${resetUrl}</p>
+                    <p>This link will expire in 1 hour.</p>
+                    <p>If you didn't request this reset, please ignore this email.</p>
+                </div>
+            `;
+            
+            // Try API-based email services first (work on free tier)
+            await sendEmailWithAPI(
+                user.email,
+                "Password Reset Request",
+                `You requested a password reset. Click the link to reset your password: ${resetUrl}`,
+                htmlContent
+            );
+            
             console.log("Password reset email sent successfully to:", email);
             res.status(200).json({ message: "Password reset link sent! Check your email." });
+            
         } catch (emailError) {
             console.log("Email sending failed:", emailError.message);
             // Don't fail the request if email fails in production
             if (process.env.NODE_ENV === 'production') {
                 console.log("Email service unavailable in production, but reset token saved to database");
                 res.status(200).json({ 
-                    message: "Password reset initiated. Email service temporarily unavailable.",
+                    message: "Password reset initiated. Email service temporarily unavailable. Check console in development.",
                     resetToken: process.env.NODE_ENV === 'development' ? token : undefined
                 });
             } else {
