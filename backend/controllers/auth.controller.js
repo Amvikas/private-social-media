@@ -86,7 +86,7 @@ export const forgotPassword = async (req, res) => {
         await user.save();
 
         // Send email (replace with your SMTP config)
-        const transporter = nodemailer.createTransporter({
+        const transporter = nodemailer.createTransport({
             service: "gmail",
             auth: {
                 user: process.env.EMAIL_USER, // your gmail
@@ -123,6 +123,7 @@ export const forgotPassword = async (req, res) => {
         res.status(200).json({ message: "Password reset link sent! Check your email." });
     } catch (error) {
         console.log("Error in forgotPassword controller", error.message);
+        console.log("Full error:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
 };
