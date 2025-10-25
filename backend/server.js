@@ -27,7 +27,7 @@ const __dirname = path.resolve();
 // CORS configuration
 app.use(cors({
 	origin: process.env.NODE_ENV === 'production' 
-		? process.env.FRONTEND_URL 
+		? [process.env.FRONTEND_URL, 'https://private-social-media.onrender.com']
 		: ["http://localhost:3000", "http://localhost:5173", "http://127.0.0.1:3000"],
 	credentials: true
 }));
@@ -38,10 +38,33 @@ app.use(express.urlencoded({ extended: true })); // to parse form data(urlencode
 
 app.use(cookieParser());
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+	res.json({ 
+		status: 'OK', 
+		timestamp: new Date().toISOString(),
+		environment: process.env.NODE_ENV,
+		port: PORT 
+	});
+});
+
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/notifications", notificationRoutes);
+
+// Add error handling middleware
+app.use((err, req, res, next) => {
+	console.error('Error:', err.message);
+	console.error('Stack:', err.stack);
+	res.status(500).json({ error: 'Internal Server Error' });
+});
+
+// Add request logging for debugging
+app.use((req, res, next) => {
+	console.log(`${req.method} ${req.path} - ${new Date().toISOString()}`);
+	next();
+});
 
 if (process.env.NODE_ENV === "production") {
 	app.use(express.static(path.join(__dirname, "/frontend/dist")));
