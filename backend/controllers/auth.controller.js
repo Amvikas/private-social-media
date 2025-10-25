@@ -8,6 +8,8 @@ import nodemailer from "nodemailer";
 export const sendOtp = async (req, res) => {
     try {
         const { email } = req.body;
+        console.log("OTP request for email:", email);
+        
         const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
         const otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
 
@@ -38,6 +40,7 @@ export const sendOtp = async (req, res) => {
         };
 
         await transporter.sendMail(mailOptions);
+        console.log("OTP email sent successfully to:", email);
 
         res.status(200).json({ message: "OTP sent to your email." });
     } catch (error) {
@@ -68,6 +71,8 @@ export const verifyOtp = async (req, res) => {
 export const forgotPassword = async (req, res) => {
     try {
         const { email } = req.body;
+        console.log("Forgot password request for email:", email);
+        
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(404).json({ error: "No user found with that email" });
@@ -81,7 +86,7 @@ export const forgotPassword = async (req, res) => {
         await user.save();
 
         // Send email (replace with your SMTP config)
-        const transporter = nodemailer.createTransport({
+        const transporter = nodemailer.createTransporter({
             service: "gmail",
             auth: {
                 user: process.env.EMAIL_USER, // your gmail
@@ -89,7 +94,14 @@ export const forgotPassword = async (req, res) => {
             },
         });
 
-        const resetUrl = `http://192.168.1.10:3000/reset-password/${token}`;
+        // Use dynamic URL based on environment
+        const baseUrl = process.env.NODE_ENV === 'production' 
+            ? process.env.FRONTEND_URL || 'https://your-deployed-app.com'
+            : 'http://localhost:3000';
+        const resetUrl = `${baseUrl}/reset-password/${token}`;
+        
+        console.log("Reset URL generated:", resetUrl);
+        
 		const mailOptions = {
 			to: user.email,
 			from: process.env.EMAIL_USER,
@@ -106,6 +118,7 @@ export const forgotPassword = async (req, res) => {
 		};
 
         await transporter.sendMail(mailOptions);
+        console.log("Password reset email sent successfully to:", email);
 
         res.status(200).json({ message: "Password reset link sent! Check your email." });
     } catch (error) {
