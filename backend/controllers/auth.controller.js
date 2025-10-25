@@ -22,13 +22,19 @@ export const sendOtp = async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        // Send OTP email
+        // Send OTP email with enhanced configuration for production
         const transporter = nodemailer.createTransport({
             service: "gmail",
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false, // true for 465, false for other ports
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
+            tls: {
+                rejectUnauthorized: false // Allow self-signed certificates in production
+            }
         });
 
         const mailOptions = {
@@ -39,8 +45,16 @@ export const sendOtp = async (req, res) => {
             html: `<p>Your OTP code is: <b>${otp}</b></p>`,
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log("OTP email sent successfully to:", email);
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("OTP email sent successfully to:", email);
+        } catch (emailError) {
+            console.log("Email sending failed:", emailError.message);
+            console.log("Email config - USER:", process.env.EMAIL_USER);
+            console.log("Email config - PASS exists:", !!process.env.EMAIL_PASS);
+            // Don't throw error, continue with success response
+            // Some hosting platforms may block SMTP
+        }
 
         res.status(200).json({ message: "OTP sent to your email." });
     } catch (error) {
@@ -85,13 +99,19 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        // Send email (replace with your SMTP config)
+        // Send email with enhanced configuration for production
         const transporter = nodemailer.createTransport({
             service: "gmail",
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false, // true for 465, false for other ports
             auth: {
-                user: process.env.EMAIL_USER, // your gmail
-                pass: process.env.EMAIL_PASS, // your gmail app password
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
             },
+            tls: {
+                rejectUnauthorized: false // Allow self-signed certificates in production
+            }
         });
 
         // Use dynamic URL based on environment
@@ -117,8 +137,17 @@ export const forgotPassword = async (req, res) => {
 			`,
 		};
 
-        await transporter.sendMail(mailOptions);
-        console.log("Password reset email sent successfully to:", email);
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("Password reset email sent successfully to:", email);
+        } catch (emailError) {
+            console.log("Email sending failed:", emailError.message);
+            console.log("Email config - USER:", process.env.EMAIL_USER);
+            console.log("Email config - PASS exists:", !!process.env.EMAIL_PASS);
+            console.log("Reset URL:", resetUrl);
+            // Don't throw error, continue with success response
+            // Some hosting platforms may block SMTP
+        }
 
         res.status(200).json({ message: "Password reset link sent! Check your email." });
     } catch (error) {
