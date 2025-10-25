@@ -1,5 +1,5 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-
+import ResetPasswordPage from "./pages/auth/ResetPasswordPage";
 import HomePage from "./pages/home/HomePage";
 import LoginPage from "./pages/auth/login/LoginPage";
 import SignUpPage from "./pages/auth/signup/SignUpPage";
@@ -43,17 +43,18 @@ function App() {
 	}
 
 	return (
-		<div className='flex max-w-6xl mx-auto'>
+		<div className='flex max-w-6xl mx-auto text-white'>
 			{/* Common component, bc it's not wrapped with Routes */}
-			{authUser && <Sidebar />}
+			{authUser && <Sidebar authUser={authUser} />}
 			<Routes>
 				<Route path='/' element={authUser ? <HomePage /> : <Navigate to='/login' />} />
 				<Route path='/login' element={!authUser ? <LoginPage /> : <Navigate to='/' />} />
 				<Route path='/signup' element={!authUser ? <SignUpPage /> : <Navigate to='/' />} />
 				<Route path='/notifications' element={authUser ? <NotificationPage /> : <Navigate to='/login' />} />
 				<Route path='/profile/:username' element={authUser ? <ProfilePage /> : <Navigate to='/login' />} />
+				<Route path="/reset-password/:token" element={<ResetPasswordPage />} />
 			</Routes>
-			{authUser && <RightPanel />}
+			{authUser && <RightPanel authUser={authUser} />}
 			<Toaster />
 		</div>
 	);

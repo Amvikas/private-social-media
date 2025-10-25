@@ -4,11 +4,16 @@ import { useRef, useState } from "react";
 import { IoCloseSharp } from "react-icons/io5";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "react-hot-toast";
-
+import Picker from '@emoji-mart/react';
 const CreatePost = () => {
 	const [text, setText] = useState("");
 	const [img, setImg] = useState(null);
 	const imgRef = useRef(null);
+	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+	
+   const handleEmojiSelect = (emoji) => {
+     setText((prev) => prev + (emoji.native || emoji.colons || ""));
+   };
 
 	const { data: authUser } = useQuery({ queryKey: ["authUser"] });
 	const queryClient = useQueryClient();
@@ -71,7 +76,7 @@ const CreatePost = () => {
 			</div>
 			<form className='flex flex-col gap-2 w-full' onSubmit={handleSubmit}>
 				<textarea
-					className='textarea w-full p-0 text-lg resize-none border-none focus:outline-none  border-gray-800'
+					className='textarea w-full p-0 text-lg resize-none border-none focus:outline-none  border-gray-800 bg-black text-white'
 					placeholder='What is happening?!'
 					value={text}
 					onChange={(e) => setText(e.target.value)}
@@ -95,7 +100,32 @@ const CreatePost = () => {
 							className='fill-primary w-6 h-6 cursor-pointer'
 							onClick={() => imgRef.current.click()}
 						/>
-						<BsEmojiSmileFill className='fill-primary w-5 h-5 cursor-pointer' />
+                        <BsEmojiSmileFill
+                            className='fill-primary w-5 h-5 cursor-pointer'
+                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                        />
+						
+						{showEmojiPicker && (
+						<div className="absolute z-50 top-10 left-0">
+							<div className="relative inline-block">
+							<Picker
+								onEmojiSelect={handleEmojiSelect}
+								theme="dark"
+							/>
+							<button
+								type="button"
+								className="absolute -top-3 -right-3 text-white bg-red-600 rounded-full w-8 h-8 flex items-center justify-center shadow-lg hover:bg-red-700"
+								onClick={() => setShowEmojiPicker(false)}
+								aria-label="Close emoji picker"
+								style={{ zIndex: 10 }}
+							>
+								&times;
+							</button>
+							</div>
+						</div>
+						)}
+
+
 					</div>
 					<input type='file' accept='image/*' hidden ref={imgRef} onChange={handleImgChange} />
 					<button className='btn btn-primary rounded-full btn-sm text-white px-4'>

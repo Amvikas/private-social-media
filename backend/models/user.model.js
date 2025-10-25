@@ -30,6 +30,12 @@ const userSchema = new mongoose.Schema({
             default: []
         }
     ],
+    // Password reset fields
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date },
+    // OTP fields for email verification
+    otp: { type: String },
+    otpExpires: { type: Date },
 }, { timestamps: true });
 
 const User = mongoose.model("User", userSchema);
