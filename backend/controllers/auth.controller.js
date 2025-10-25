@@ -22,13 +22,19 @@ export const sendOtp = async (req, res) => {
         user.otpExpires = otpExpires;
         await user.save();
 
-        // Send OTP email
+        // Send OTP email with enhanced configuration
         const transporter = nodemailer.createTransport({
             service: "gmail",
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER,
                 pass: process.env.EMAIL_PASS,
             },
+            connectionTimeout: 60000, // 60 seconds
+            greetingTimeout: 30000,   // 30 seconds  
+            socketTimeout: 60000,     // 60 seconds
         });
 
         const mailOptions = {
@@ -39,10 +45,23 @@ export const sendOtp = async (req, res) => {
             html: `<p>Your OTP code is: <b>${otp}</b></p>`,
         };
 
-        await transporter.sendMail(mailOptions);
-        console.log("OTP email sent successfully to:", email);
-
-        res.status(200).json({ message: "OTP sent to your email." });
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("OTP email sent successfully to:", email);
+            res.status(200).json({ message: "OTP sent to your email." });
+        } catch (emailError) {
+            console.log("Email sending failed:", emailError.message);
+            // Don't fail the request if email fails in production
+            if (process.env.NODE_ENV === 'production') {
+                console.log("Email service unavailable in production, but OTP saved to database");
+                res.status(200).json({ 
+                    message: "OTP generated. Email service temporarily unavailable.",
+                    otp: process.env.NODE_ENV === 'development' ? otp : undefined
+                });
+            } else {
+                res.status(500).json({ error: "Failed to send email" });
+            }
+        }
     } catch (error) {
         console.log("Error in sendOtp controller", error.message);
         res.status(500).json({ error: "Internal Server Error" });
@@ -85,13 +104,19 @@ export const forgotPassword = async (req, res) => {
 
         await user.save();
 
-        // Send email (replace with your SMTP config)
+        // Send email with enhanced configuration
         const transporter = nodemailer.createTransport({
             service: "gmail",
+            host: "smtp.gmail.com",
+            port: 587,
+            secure: false,
             auth: {
                 user: process.env.EMAIL_USER, // your gmail
                 pass: process.env.EMAIL_PASS, // your gmail app password
             },
+            connectionTimeout: 60000, // 60 seconds
+            greetingTimeout: 30000,   // 30 seconds  
+            socketTimeout: 60000,     // 60 seconds
         });
 
         // Use dynamic URL based on environment
@@ -117,10 +142,23 @@ export const forgotPassword = async (req, res) => {
 			`,
 		};
 
-        await transporter.sendMail(mailOptions);
-        console.log("Password reset email sent successfully to:", email);
-
-        res.status(200).json({ message: "Password reset link sent! Check your email." });
+        try {
+            await transporter.sendMail(mailOptions);
+            console.log("Password reset email sent successfully to:", email);
+            res.status(200).json({ message: "Password reset link sent! Check your email." });
+        } catch (emailError) {
+            console.log("Email sending failed:", emailError.message);
+            // Don't fail the request if email fails in production
+            if (process.env.NODE_ENV === 'production') {
+                console.log("Email service unavailable in production, but reset token saved to database");
+                res.status(200).json({ 
+                    message: "Password reset initiated. Email service temporarily unavailable.",
+                    resetToken: process.env.NODE_ENV === 'development' ? token : undefined
+                });
+            } else {
+                res.status(500).json({ error: "Failed to send email" });
+            }
+        }
     } catch (error) {
         console.log("Error in forgotPassword controller", error.message);
         console.log("Full error:", error);
